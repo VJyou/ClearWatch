@@ -441,6 +441,10 @@ Partially implemented. `check_only` ships in this submission — live on Solana 
 | BLOCKED — flagged Tier-1 counterparty | [`ta4e6SXC…`](https://explorer.solana.com/tx/ta4e6SXCeCHSLqA4U8H5BTApECkqPXvKNUJmxXpkp78Hnf3HfPYDEFtf5XqbQ4d1VpRH5Cx761F9xYe4XaL9as1?cluster=devnet) | `is_clear=false, risk_score=50, risk_tier_at_check=1` |
 | CLEAR — Wrapped-SOL mint, no `RiskEntry` | [`6LWo8Z2M…`](https://explorer.solana.com/tx/6LWo8Z2M8j1ZuzEQNY5PSpGZb5TCp6ohgGTyP5fpHsh813Fezwkfvgnv9ni3eN1K6UFfztNvFMDURXwnPEqQsw6?cluster=devnet) | `is_clear=true, risk_score=0, risk_tier_at_check=0` |
 
+![check_only BLOCKED tx on Solana Explorer — return_data ADIB = is_clear=false / risk_score=50 / tier=1, 8,738 CU consumed](docs/screenshots/05-check-only-explorer.png)
+
+The Solana Explorer view of the BLOCKED tx makes the read-only contract auditable at a glance: the discriminator `e7 57 9d af e1 d5 ff 7b` identifies the `check_only` instruction, the program log confirms `BLOCKED` against the flagged Tier-1 counterparty, the `Program return: …EKgB ADIB` line carries the base64-encoded `CheckOnlyResult` bytes, and the whole call costs **8,738 compute units** — under 5 % of the standard 200 k budget, which is the load-bearing property for DEX-aggregator and bridge integrations that pay CU per swap.
+
 Caller-keyed PDAs, `check_only_batch`, the trust framework, and the off-chain attestation path remain roadmap.
 
 ### Confidential Checks via Arcium — cross-cutting privacy
