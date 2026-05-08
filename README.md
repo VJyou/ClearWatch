@@ -447,13 +447,13 @@ Tests use [LiteSVM](https://github.com/LiteSVM/litesvm) — no validator process
 - **Not a competitor to established AML providers** like the major commercial blockchain analytics vendors. ClearWatch fills a different structural gap: an on-chain compliance primitive that smart contracts can compose with. The data overlap is real; the mode of access is fundamentally different.
 - **Not a closed API.** The registry is on-chain. Anyone can read it without an API key. The paid Self POI API is optional and reads the same registry anyone else can.
 - **Not a compliance solution.** It is **infrastructure for compliance verification** — the rails on which integrating protocols make their own jurisdiction-specific decisions. We supply the on-chain risk signal; the application decides what to do with it.
-- **Not finished.** Tier-2/3 escalation, multi-reporter aggregation, source-diverse ingestion, the risk graph, ecosystem CPI extensions, and the Arcium MPC integration are designed (see [Roadmap](#roadmap)) but not all production-grade. The plaintext, agent-only flow ships; the rest is scoped post-hackathon. The full design notes are in [`CLAUDE.md`](./CLAUDE.md).
+- **Not finished.** Tier-2/3 escalation, multi-reporter aggregation, source-diverse ingestion, the risk graph, ecosystem CPI extensions, and the Arcium MPC integration are designed (see [Roadmap](#roadmap)) but not all production-grade. The plaintext, agent-only flow ships; the rest is scoped post-hackathon.
 
 ---
 
 ## Build from source
 
-This repository builds on a system without `gcc` by using Solana's bundled clang. See [`CLAUDE.md`](./CLAUDE.md) for the env setup if you hit linker errors.
+This repository builds on a system without `gcc` by using Solana's bundled clang. If you hit linker errors, ensure Solana's `platform-tools` clang is on your `PATH` ahead of the system toolchain.
 
 ```bash
 source ~/.cargo/env
