@@ -32,6 +32,13 @@ pub mod clearwatch {
         instructions::check_and_prove::handler(ctx, counterparty, amount, purpose)
     }
 
+    pub fn check_only(
+        ctx: Context<CheckOnly>,
+        counterparty: Pubkey,
+    ) -> Result<CheckOnlyResult> {
+        instructions::check_only::handler(ctx, counterparty)
+    }
+
     pub fn upgrade_tier(
         ctx: Context<UpgradeTier>,
         flagged_address: Pubkey,

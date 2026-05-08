@@ -206,6 +206,7 @@ The 0.1 SOL stake is intentionally accessible — trivial for an enterprise runn
 |---|---|
 | `report_address(flagged, incident_type)` | Creates a Tier-1 `RiskEntry` PDA. Locks 0.1 SOL into a `stake_vault` PDA. 1-hour TTL. |
 | `check_and_prove(counterparty, amount, purpose)` | Reads optional `RiskEntry`; computes `is_clear` + `risk_score`; writes a deterministic `InnocenceProof` PDA. |
+| `check_only(counterparty)` | Read-only risk gate. Reads optional `RiskEntry`, returns `CheckOnlyResult { is_clear, risk_score, risk_tier_at_check }` via Solana return data. No PDA write — designed for high-throughput callers (DEX aggregators, bridges) that pay compute units per swap. |
 | `upgrade_tier(flagged, new_tier)` | Promotes Tier 1 → 2 → 3 once corroborated. Removes the TTL. |
 | `slash_reporter(flagged, vault_bump)` | Closes a false report's `RiskEntry`, transfers the stake to the slashing authority. |
 
@@ -238,10 +239,11 @@ programs/clearwatch/
 │   └── instructions/
 │       ├── report_address.rs
 │       ├── check_and_prove.rs
+│       ├── check_only.rs
 │       ├── upgrade_tier.rs
 │       └── slash_reporter.rs
 └── tests/
-    └── test_clearwatch.rs  — 3 LiteSVM integration tests (all green)
+    └── test_clearwatch.rs  — 4 LiteSVM integration tests (all green)
 
 clearwatch.html             — single-file UI, vanilla web3.js, manual Borsh
 clearwatch-poi-skill.md     — Claude Code agent skill for the agent-side flow
@@ -375,11 +377,12 @@ The instruction reads either `RiskEntry` (direct flag) or `DerivedRiskEntry` (tr
 
 #### Three-tier check comparison
 
-| | `check_only` (Ecosystem Integration) | `check_with_propagation` (Risk Graph) | `check_and_prove` (Self POI API) |
+| | `check_only` (shipped) | `check_with_propagation` (Risk Graph) | `check_and_prove` (Self POI API) |
 |---|---|---|---|
 | Reads direct registry | yes | yes | yes |
 | Reads risk graph | no | yes | not yet |
 | Writes `InnocenceProof` PDA | no | yes | yes |
+| Returns via return data | yes | no | no |
 | Compute units | lowest | medium | low |
 | Use case | DEX aggregator pre-trade screen | bridge / treasury / cross-chain settlement | agent compliance audit trail |
 
@@ -397,9 +400,9 @@ The InnocenceProof primitive is composable. The current implementation is agent-
 
 Three program-level extensions enable this. Two broader directions sit beyond them.
 
-#### `check_only` — read-only risk gate
+#### `check_only` — read-only risk gate **(shipped)**
 
-A pure read instruction that returns `(is_clear, risk_score)` without writing an `InnocenceProof` PDA. Designed for high-throughput callers like DEX aggregators where every swap pays compute units. Eliminates the rent + write cost of `check_and_prove` for use cases that don't need the audit trail.
+A pure read instruction that returns `CheckOnlyResult { is_clear, risk_score, risk_tier_at_check }` via Solana program return data, without writing an `InnocenceProof` PDA. Designed for high-throughput callers like DEX aggregators where every swap pays compute units. Eliminates the rent + write cost of `check_and_prove` for use cases that don't need the audit trail. CPI-callable from any Solana program; the result is recoverable from `get_return_data` after the cross-program invocation.
 
 #### Caller-keyed PDAs (vs agent-keyed)
 
@@ -431,7 +434,7 @@ For ultra-high-throughput integrations, an off-chain attestation model (similar 
 
 #### Status
 
-Roadmap, not implemented in this hackathon submission.
+Partially implemented. `check_only` ships in this submission and is exercised by a LiteSVM test (`test_check_only_blocked`) that verifies the return-data shape and asserts no `InnocenceProof` PDA is created. Caller-keyed PDAs, `check_only_batch`, the trust framework, and the off-chain attestation path remain roadmap.
 
 ### Confidential Checks via Arcium — cross-cutting privacy
 
@@ -497,10 +500,11 @@ References used: `arcium` skill at `.claude/skills/arcium/SKILL.md`, [Arcium doc
 ## Tests
 
 ```
-running 3 tests
-test test_check_and_prove_blocked ... ok
-test test_check_and_prove_clear   ... ok
-test test_report_address          ... ok
+running 4 tests
+test test_report_address           ... ok
+test test_check_and_prove_clear    ... ok
+test test_check_and_prove_blocked  ... ok
+test test_check_only_blocked       ... ok
 ```
 
 Run them yourself:

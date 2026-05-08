@@ -2,9 +2,9 @@ use {
     anchor_lang::{
         prelude::Pubkey,
         solana_program::instruction::Instruction,
-        AccountDeserialize, InstructionData, ToAccountMetas,
+        AccountDeserialize, AnchorDeserialize, InstructionData, ToAccountMetas,
     },
-    litesvm::LiteSVM,
+    litesvm::{LiteSVM, types::TransactionMetadata},
     solana_keypair::Keypair,
     solana_message::{Message, VersionedMessage},
     solana_signer::Signer,
@@ -20,13 +20,20 @@ fn send_tx(
     payer: &Keypair,
     instructions: Vec<Instruction>,
 ) -> Result<(), String> {
+    send_tx_meta(svm, payer, instructions).map(|_| ())
+}
+
+fn send_tx_meta(
+    svm: &mut LiteSVM,
+    payer: &Keypair,
+    instructions: Vec<Instruction>,
+) -> Result<TransactionMetadata, String> {
     let blockhash = svm.latest_blockhash();
     let msg =
         Message::new_with_blockhash(&instructions, Some(&payer.pubkey()), &blockhash);
     let tx = VersionedTransaction::try_new(VersionedMessage::Legacy(msg), &[payer])
         .map_err(|e| e.to_string())?;
-    svm.send_transaction(tx).map_err(|e| format!("{:?}", e))?;
-    Ok(())
+    svm.send_transaction(tx).map_err(|e| format!("{:?}", e))
 }
 
 fn pda_risk_entry(flagged: &Pubkey) -> Pubkey {
@@ -194,4 +201,71 @@ fn test_check_and_prove_blocked() {
     assert_eq!(proof.risk_score, 50);
 
     println!("✓ check_and_prove: BLOCKED result, tier={}", proof.risk_tier_at_check);
+}
+
+#[test]
+fn test_check_only_blocked() {
+    let program_id = program_id();
+    let reporter = Keypair::new();
+    let caller = Keypair::new();
+    let flagged = Keypair::new().pubkey();
+
+    let mut svm = LiteSVM::new();
+    let bytes = include_bytes!("../../../target/deploy/clearwatch.so");
+    svm.add_program(program_id, bytes).unwrap();
+    svm.airdrop(&reporter.pubkey(), 2_000_000_000).unwrap();
+    svm.airdrop(&caller.pubkey(), 2_000_000_000).unwrap();
+
+    // Step 1: flag the address
+    let ix_report = Instruction::new_with_bytes(
+        program_id,
+        &clearwatch::instruction::ReportAddress {
+            flagged_address: flagged,
+            incident_type: "Phishing".to_string(),
+        }
+        .data(),
+        clearwatch::accounts::ReportAddress {
+            reporter: reporter.pubkey(),
+            risk_entry: pda_risk_entry(&flagged),
+            stake_vault: pda_stake_vault(&flagged),
+            system_program: anchor_lang::solana_program::system_program::id(),
+        }
+        .to_account_metas(None),
+    );
+    send_tx(&mut svm, &reporter, vec![ix_report]).expect("report_address failed");
+
+    // Step 2: caller invokes check_only against flagged counterparty
+    let ix_check = Instruction::new_with_bytes(
+        program_id,
+        &clearwatch::instruction::CheckOnly { counterparty: flagged }.data(),
+        clearwatch::accounts::CheckOnly {
+            caller: caller.pubkey(),
+            risk_entry: Some(pda_risk_entry(&flagged)),
+        }
+        .to_account_metas(None),
+    );
+
+    let meta = send_tx_meta(&mut svm, &caller, vec![ix_check])
+        .expect("check_only failed");
+
+    // Verify return data: is_clear=false, risk_score=50, risk_tier=1
+    let return_bytes = &meta.return_data.data;
+    assert!(!return_bytes.is_empty(), "check_only must set return_data");
+    let result = clearwatch::CheckOnlyResult::try_from_slice(return_bytes)
+        .expect("return data should deserialize as CheckOnlyResult");
+    assert!(!result.is_clear, "expected BLOCKED");
+    assert_eq!(result.risk_score, 50);
+    assert_eq!(result.risk_tier_at_check, 1);
+
+    // Verify read-only invariant: NO innocence_proof PDA was created
+    let proof_pda = pda_innocence_proof(&caller.pubkey(), &flagged);
+    assert!(
+        svm.get_account(&proof_pda).is_none(),
+        "check_only must not create an InnocenceProof PDA"
+    );
+
+    println!(
+        "✓ check_only: BLOCKED return_data + no PDA write (tier={}, score={})",
+        result.risk_tier_at_check, result.risk_score
+    );
 }

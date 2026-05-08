@@ -39,3 +39,23 @@ impl InnocenceProof {
     // + 1 is_clear + 1 risk_score + 1 risk_tier_at_check + 8 timestamp + 32 proof_hash
     pub const SPACE: usize = 8 + 32 + 32 + 8 + 32 + 1 + 1 + 1 + 8 + 32;
 }
+
+/// Shared risk-tier evaluation. Tier 1 entries past their TTL are treated as cleared.
+/// Returns (is_clear, risk_score, risk_tier_at_check).
+pub fn evaluate_risk(risk_entry: Option<&RiskEntry>, now: i64) -> (bool, u8, u8) {
+    match risk_entry {
+        None => (true, 0, 0),
+        Some(entry) => {
+            if entry.tier == 1 && now > entry.expires_at {
+                return (true, 0, 0);
+            }
+            let risk_score = match entry.tier {
+                1 => 50,
+                2 => 75,
+                3 => 100,
+                _ => 0,
+            };
+            (false, risk_score, entry.tier)
+        }
+    }
+}

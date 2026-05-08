@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use crate::state::{RiskEntry, InnocenceProof};
+use crate::state::{RiskEntry, InnocenceProof, evaluate_risk};
 use crate::error::ClearWatchError;
 
 #[derive(Accounts)]
@@ -36,7 +36,9 @@ pub fn handler(
     require!(purpose.len() <= 256, ClearWatchError::PurposeTooLong);
 
     let clock = Clock::get()?;
-    let (is_clear, risk_score, risk_tier_at_check) = evaluate_risk(&ctx.accounts.risk_entry, clock.unix_timestamp);
+    let risk_entry_ref = ctx.accounts.risk_entry.as_ref().map(|a| &**a);
+    let (is_clear, risk_score, risk_tier_at_check) =
+        evaluate_risk(risk_entry_ref, clock.unix_timestamp);
 
     let purpose_hash = hash_purpose(&purpose);
     let proof_hash = compute_proof_hash(
@@ -77,28 +79,6 @@ pub fn handler(
     }
 
     Ok(())
-}
-
-fn evaluate_risk(
-    risk_entry: &Option<Account<RiskEntry>>,
-    now: i64,
-) -> (bool, u8, u8) {
-    match risk_entry {
-        None => (true, 0, 0),
-        Some(entry) => {
-            // Tier 1 expires; Tier 2+ are permanent until manually resolved
-            if entry.tier == 1 && now > entry.expires_at {
-                return (true, 0, 0);
-            }
-            let risk_score = match entry.tier {
-                1 => 50,
-                2 => 75,
-                3 => 100,
-                _ => 0,
-            };
-            (false, risk_score, entry.tier)
-        }
-    }
 }
 
 fn hash_purpose(purpose: &str) -> [u8; 32] {
