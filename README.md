@@ -434,7 +434,7 @@ For ultra-high-throughput integrations, an off-chain attestation model (similar 
 
 #### Status
 
-Partially implemented. `check_only` ships in this submission and is exercised by a LiteSVM test (`test_check_only_blocked`) that verifies the return-data shape and asserts no `InnocenceProof` PDA is created. Caller-keyed PDAs, `check_only_batch`, the trust framework, and the off-chain attestation path remain roadmap.
+Partially implemented. `check_only` ships in this submission — live on Solana devnet at the same program ID `FDMGN1Gp62gK1TAnVvq2DM4HV6BhFwJ9Me5djLVKEKgB` as the rest of the protocol, and exercised by a LiteSVM test (`test_check_only_blocked`) that verifies the return-data shape and asserts no `InnocenceProof` PDA is created. Caller-keyed PDAs, `check_only_batch`, the trust framework, and the off-chain attestation path remain roadmap.
 
 ### Confidential Checks via Arcium — cross-cutting privacy
 
