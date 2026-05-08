@@ -457,7 +457,7 @@ This repository builds on a system without `gcc` by using Solana's bundled clang
 
 ```bash
 source ~/.cargo/env
-export PATH="$HOME/.local/bin:/home/vportal/.local/share/solana/install/active_release/bin:$PATH"
+export PATH="$HOME/.local/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 cargo build-sbf
 ```
 
