@@ -1,77 +1,85 @@
-v2[20260508]
+v4[20260508]
 
 # ClearWatch — Pitch Script (Colosseum Frontier)
 
-**Target length:** 2:30–2:45 (3-minute hard cap)
+**Target length:** ≤2:00 (Arena Pitch video cap)
 **Delivery rate:** ~145 words per minute
-**Word count:** ~386
-**Format:** spoken; no slides required, but section headers map to recommended on-screen overlays.
+**Word count:** ~290
+**Format:** spoken; founder narrative video, separate from the demo video.
 
 ---
 
-## (0:00–0:35) Problem — the AI agent compliance gap
+## (0:00–0:20) Self-introduction
 
-Every week, millions are stolen in DeFi exploits. Investigations follow days later. Blacklist updates land days after that.
+Hi, I'm Akky. I've spent the past few years as a crypto analyst based in Japan, focused mostly on Solana and the emerging AI agent economy.
 
-The entire AML stack — sanctions screening, transaction monitoring, KYC — was built around humans moving at human speed. AI agents transact in milliseconds. When an agent sends funds to a compromised address, the company running that agent owns the liability — and there's no audit trail proving the agent followed any rule, because no rule was ever attached to it.
+## (0:20–0:55) What I'm building
 
-## (0:35–1:05) Two-part architecture
+What I'm building is ClearWatch — an on-chain compliance primitive for a gap I've been watching go unsolved. AI agents are about to move serious value on-chain at machine speed, and there's no audit trail infrastructure underneath them. ClearWatch is two parts: a public stake-secured risk registry anyone can flag and read for free, plus a paid API where AI agents call check_and_prove before each transaction and write a cryptographic proof on-chain.
 
-ClearWatch is two parts.
+The frontend at clearwatch.pages.dev is the human side — victims reporting flagged addresses, builders verifying entries. AI agents integrate programmatically at the on-chain program level.
 
-The first is a public, stake-secured risk registry on Solana — anyone can flag a compromised address with a 0.1 SOL stake, anyone can read free of charge.
+## (0:55–1:30) Why me
 
-The second is Self Proof of Innocence — a paid API that reads the registry and writes a cryptographic Innocence Proof on-chain before each agent transaction. Sub-second finality and fractional-cent proof writes mean per-transaction compliance doesn't break the agent's unit economics. The enterprise gets the audit trail.
+Why me? Across those years, the same pattern kept showing up. When something goes wrong — phishing drains, rug pulls, dust attacks — recovery mobilizes for the big losses. Everyday users get left behind. Every time. I came to see this as structural failure, not bad luck. And as AI agents transact at machine speed in small amounts, the gap multiplies by orders of magnitude. That's why I'm shipping this now.
 
-## (1:05–1:25) The asymmetric bet
+## (1:30–1:50) On scope
 
-This is an asymmetric bet.
+What's submitted is two parts running on Solana devnet today: the registry and the API. The roadmap items — sanctions data ingestion, transitive risk propagation, ecosystem integration, privacy via Arcium — are documented but not built. I'd rather be honest than over-claim.
 
-If the API succeeds, ClearWatch becomes the compliance backbone for the entire AI agent economy.
+## (1:50–2:00) The bet
 
-If it fails — the registry is still there. Open. Permanent. On-chain. The infrastructure exists either way. That's the point.
+The bet: if the API succeeds, this is compliance infrastructure for the agent economy. If it doesn't, the registry stays as on-chain public infrastructure for the next builder. No path where this is wasted.
 
-## (1:25–2:15) Where this goes next
-
-The registry is designed to ingest authoritative sources — OFAC, sanctions lists, public exploit databases — as Tier-3 entries with source attribution. A Risk Graph handles transitive flagging when exploits fan out funds across multiple wallets. We're not replacing the established AML providers; we're filling the structural gap where smart contracts need a compliance primitive they can compose with, not an API contract they have to negotiate.
-
-Today AI agents call check_and_prove. Tomorrow, Jupiter, Wormhole, and Phantom can CPI into the same primitive. The InnocenceProof primitive is composable. We're not building a service for one user category — we're building a primitive that becomes infrastructure when the agent economy and the human economy converge on Solana.
-
-## (2:15–2:40) Public Goods close
-
-Most compliance infrastructure today is owned. ClearWatch is owned by no one.
-
-It's a public good for an economy that doesn't yet exist — one where every company asks a question humans never had to:
-
-"How do I prove my agent followed the rules — when no human was watching?"
-
-ClearWatch answers that question. On Solana. Today.
+You can verify it on devnet at clearwatch.pages.dev. That's my submission.
 
 ---
 
 ## Delivery notes
 
 - Pause two beats after each section heading. The structure carries the argument; let it breathe.
-- The line "owned by no one" should land hard — slow it down and drop pitch.
-- The closing question is the hook. Read it like a question, not a recital.
-- "Where this goes next" is the only forward-looking section — keep tense consistent. "is designed to" / "handles" / "tomorrow" frame everything as roadmap; don't slip into past or perfect tense and don't add long "Status: ..." caveats. The README carries the explicit status lines.
-- Avoid filler ("you know", "kind of"). Each sentence is loadbearing at this density.
-- If a take runs long, cut from the Problem section first — the second sentence is the most compressible.
-- "two parts" not "two layers" — never use "Layer 1 / Layer 2" out loud. In a Solana pitch the term collides with blockchain L1/L2 terminology.
+- "Why me" is the emotional center. Slow down on "phishing drains, rug pulls, dust attacks" — let each item land. "Every time" is the hook, point it.
+- "I came to see this as structural failure, not bad luck" — deliberate tone shift, observation to conviction.
+- "The gap multiplies by orders of magnitude" — alarm in the voice.
+- Closing public URL is the call to action — don't rush.
+- Total target: 1:55-2:00. The 2:00 cap is hard; over by 1 second triggers Arena auto-trim.
 
 ## What this pitch deliberately avoids
 
-- Detailed Arcium privacy claims (status: Designed, not yet built — not in the verbal pitch beyond what's already on-screen via the README).
-- "Status: not implemented in this hackathon submission" verbiage — too long for spoken delivery; the README carries the explicit status lines.
-- Any "integration" framing for sponsor skills (they accelerate development; they are not protocol integrations).
-- x402 framing (if added as a stretch goal, it stays in the README/demo, not in this pitch).
-- Frameworkless HTML defense (only mention if asked in Q&A — frame as auditability, not a corner cut).
-- "Compliance solution" framing — ClearWatch is *infrastructure for compliance verification*, not a compliance solution. The latter creates regulatory liability we're not in business to accept.
-- **The word "layer"** — in a Solana pitch, "Layer 1 / Layer 2" reads as L1/L2 blockchain terminology and creates ambiguity. Spoken delivery uses "part", "side", or function-named description ("the registry", "the API", "the Risk Graph"). The README still uses the layer-numbering convention internally; the verbal pitch does not.
-- **Named incumbent AML providers** — Chainalysis, TRM, Elliptic, and similar are deliberately abstracted as "the established AML providers" / "the AML stack" in spoken delivery. The structural-gap framing is the message; naming the incumbents reframes the relationship as competitive when it isn't.
+- Detailed Arcium privacy claims (Designed, not yet built).
+- "Status: not implemented" verbiage out loud.
+- "Integration" framing for sponsor skills.
+- x402 framing.
+- Frameworkless HTML defense (Q&A only).
+- "Compliance solution" framing — ClearWatch is *infrastructure for compliance verification*.
+- The word "layer" — in a Solana pitch, "Layer 1 / Layer 2" reads as blockchain L1/L2.
+- Named incumbent AML providers — abstracted as "the established AML providers" / "the AML stack".
+- Specific named integration partners — generic "any DeFi protocol or bridge" if mentioned at all.
 
-## Arena category mapping
+## Optional addition (5/8 stretch, if recording with margin)
 
-- Primary: **Agents + Tokenization**
-- Public Goods Award: yes (the closing argument is built for this)
-- Privacy + Confidential Compute: **do not select** until Arcium circuit is shipped
+Insert at end of "What I'm building" section (~25 words, fits 2:00 cap):
+
+  "Agents don't just consume the registry. When an agent is compromised, its runtime can flag the perpetrator using the same primitive — every other agent gets the warning in the next block."
+
+This makes ClearWatch a "protocol agents participate in" rather than "a service agents call." Strong narrative but only include if take is clean and time permits.
+
+## Subtitle hit list
+
+Tech terms (Premiere Auto-Transcribe校正):
+- ClearWatch (one word, capital W)
+- Akky (proper noun)
+- check_and_prove
+- InnocenceProof
+- Solana / Anchor / Phantom / Arcium
+- DeFi / AML / OFAC / KYC / SOL / PDA
+- "phishing drains" (often "fishing")
+- "rug pulls"
+- "dust attacks"
+- "structural failure"
+
+Removed from previous versions (no longer in script):
+- Chainalysis / Jupiter / Wormhole
+- Layer 1 / Layer 2 / Layer 3
+- Sub-second finality / fractional-cent
+- "outside the U.S. compliance industry"

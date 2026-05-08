@@ -1,5 +1,9 @@
 # ClearWatch
 
+[![Live demo](https://img.shields.io/badge/demo-clearwatch.pages.dev-3b82f6)](https://clearwatch.pages.dev)
+[![Solana devnet](https://img.shields.io/badge/devnet-FDMGN1Gp...EKgB-9945ff)](https://explorer.solana.com/address/FDMGN1Gp62gK1TAnVvq2DM4HV6BhFwJ9Me5djLVKEKgB?cluster=devnet)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **Self Proof of Innocence for AI Agents — built on Solana.**
 
 A real-time, community-reported risk registry that any AI agent can check in milliseconds before it sends funds. Every authorized transaction emits a cryptographic *Innocence Proof* on-chain, giving compliance teams the audit trail the AI agent economy doesn't have yet.
@@ -115,6 +119,79 @@ Implementation surface: `RiskEntry` PDA, plus `report_address` / `upgrade_tier` 
 The agent-side primitive. Before sending funds, an AI agent calls `check_and_prove(counterparty, amount, purpose)`. The instruction reads the Open Registry, computes `is_clear` and `risk_score`, and writes a deterministic `InnocenceProof` PDA — a SHA256 commit over (agent, counterparty, amount, purpose_hash, is_clear, timestamp). Compliance teams get a verifiable audit trail without changing the agent's hot-path latency.
 
 The `proof_hash` is reproducible client-side, so any third party can verify the on-chain state matches the inputs without trusting ClearWatch as an intermediary.
+
+## How AI agents integrate
+
+ClearWatch's `check_and_prove` instruction is a standard Solana program call. Any AI agent runtime — Node.js, Python, Rust — invokes it before sending funds. The pattern in TypeScript:
+
+```typescript
+import { Program, AnchorProvider } from "@coral-xyz/anchor";
+import { Transaction, PublicKey, Keypair } from "@solana/web3.js";
+import IDL from "./clearwatch.json";
+
+async function safeTransfer(
+  agent: Keypair,
+  counterparty: PublicKey,
+  amount: bigint,
+  purpose: string
+) {
+  const program = new Program(IDL, provider);
+
+  // 1. Pre-flight compliance check writes an InnocenceProof PDA
+  await program.methods
+    .checkAndProve(counterparty, amount, purpose)
+    .accounts({
+      agent: agent.publicKey,
+      riskEntry: await deriveRiskEntryPDA(counterparty),
+      innocenceProof: await deriveInnocenceProofPDA(
+        agent.publicKey, counterparty
+      ),
+    })
+    .rpc();
+
+  // 2. Read the InnocenceProof to determine is_clear
+  const proof = await program.account.innocenceProof.fetch(
+    await deriveInnocenceProofPDA(agent.publicKey, counterparty)
+  );
+
+  if (!proof.isClear) {
+    throw new Error("BLOCKED: counterparty flagged");
+  }
+
+  // 3. Proceed with the actual transfer
+  return await sendTransfer(agent, counterparty, amount);
+}
+```
+
+The frontend at [clearwatch.pages.dev](https://clearwatch.pages.dev/) is the human side — victims reporting compromised addresses, builders verifying registry entries, the public auditing the system. AI agents integrate at the program level, calling `check_and_prove` from their own runtime as part of their pre-transaction flow. The Claude Code agent skill at [`clearwatch-poi-skill.md`](clearwatch-poi-skill.md) walks an agent developer through this integration pattern with their assistant.
+
+### Bidirectional protocol participation
+
+Agents are not only consumers of the registry. When an agent's runtime detects compromise — a malicious tool call, an unexpected drain, an operator alert — the same SDK pattern submits a report:
+
+```typescript
+async function reportPerpetrator(
+  agent: Keypair,
+  perpetrator: PublicKey,
+  incidentType: string  // "phishing_drain", "malicious_contract", etc.
+) {
+  const program = new Program(IDL, provider);
+
+  return await program.methods
+    .reportAddress(perpetrator, incidentType)
+    .accounts({
+      reporter: agent.publicKey,
+      riskEntry: await deriveRiskEntryPDA(perpetrator),
+      stakeVault: await deriveStakeVaultPDA(perpetrator),
+      systemProgram: SystemProgram.programId,
+    })
+    .rpc();
+}
+```
+
+This is the structural reason ClearWatch's registry is built on stake-secured community reports rather than a single-vendor feed: the agent ecosystem can flag its own attackers in real time, and every other agent's `check_and_prove` gets the warning in the next block.
+
+The 0.1 SOL stake is intentionally accessible — trivial for an enterprise running agents at scale, but enough to make false reports costly. Tier 1's 1-hour TTL is calibrated for agent-speed reports: fast enough to propagate warnings within the same incident timeline, ephemeral enough that a single false report does no permanent damage. Slashing handles persistent bad actors.
 
 ---
 
@@ -266,6 +343,10 @@ Consumers query a `DerivedRiskEntry` the same way they query a `RiskEntry`. The 
 2. **Amount-weighted threshold.** Inflows under 1 % of the receiving wallet's total volume in the propagation window are not tracked. This neutralizes dust-attack contamination — an attacker can't poison a clean wallet by spraying 1 lamport from a flagged address.
 3. **Time-windowed propagation.** The decay window is 24 to 72 hours, configurable per source severity. Funds that have settled for longer than the window stop propagating. This prevents permanent contamination — an address that received tainted funds years ago and has since transacted normally is not blocked forever.
 4. **Termination conditions.** Propagation stops at known mixers (Tornado Cash and equivalents), CEX hot wallets (deposit endpoints aren't user wallets), explicitly whitelisted protocol PDAs (Jupiter aggregator, Wormhole token bridge), and dust thresholds. Termination is what keeps the graph computable in bounded time.
+
+#### Swarm immunity (composition with agent-submitted reports)
+
+Risk Graph propagation reaches its highest leverage when combined with agent-submitted reports. A single agent's compromise — detected and reported within seconds of the incident — propagates through the graph within the next slot. The 24-72 hour propagation window matches the operational tempo of agent ecosystems precisely: long enough to catch post-exploit fan-out, short enough to avoid permanent address pollution. One agent's incident becomes every other agent's warning.
 
 #### Trust model evolution
 
@@ -447,6 +528,7 @@ Tests use [LiteSVM](https://github.com/LiteSVM/litesvm) — no validator process
 - **Not a competitor to established AML providers** like the major commercial blockchain analytics vendors. ClearWatch fills a different structural gap: an on-chain compliance primitive that smart contracts can compose with. The data overlap is real; the mode of access is fundamentally different.
 - **Not a closed API.** The registry is on-chain. Anyone can read it without an API key. The paid Self POI API is optional and reads the same registry anyone else can.
 - **Not a compliance solution.** It is **infrastructure for compliance verification** — the rails on which integrating protocols make their own jurisdiction-specific decisions. We supply the on-chain risk signal; the application decides what to do with it.
+- **Not a single-party feed.** The registry's value comes from the agent ecosystem participating bidirectionally — both consuming and contributing — at machine speed.
 - **Not finished.** Tier-2/3 escalation, multi-reporter aggregation, source-diverse ingestion, the risk graph, ecosystem CPI extensions, and the Arcium MPC integration are designed (see [Roadmap](#roadmap)) but not all production-grade. The plaintext, agent-only flow ships; the rest is scoped post-hackathon.
 
 ---
