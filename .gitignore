@@ -31,5 +31,9 @@ test-ledger/
 SYNC-iPhone.md
 CLAUDE.md
 
+# Private pitch / walkthrough drafts — kept local only
+docs/pitch.md
+docs/tech-walkthrough.md
+
 # Logs
 *.log
