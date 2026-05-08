@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearWatch — AI Agent Innocence Protocol</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #050a08;
+    --surface: #0a110d;
+    --surface2: #0f1a12;
+    --green: #00ff6a;
+    --green-dim: #00c44f;
+    --green-faint: rgba(0,255,106,0.07);
+    --green-faint2: rgba(0,255,106,0.13);
+    --red: #ff3b3b;
+    --red-faint: rgba(255,59,59,0.1);
+    --yellow: #ffd166;
+    --yellow-faint: rgba(255,209,102,0.1);
+    --text: #c8e8d0;
+    --text-dim: #5a8068;
+    --border: rgba(0,255,106,0.15);
+    --border-bright: rgba(0,255,106,0.4);
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'Syne', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    overflow-x: hidden;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: linear-gradient(rgba(0,255,106,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,106,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1200px; margin: 0 auto; padding: 0 24px 48px; }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 0 20px; border-bottom: 1px solid var(--border); margin-bottom: 32px;
+  }
+
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-icon {
+    width: 36px; height: 36px; border: 2px solid var(--green); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; position: relative;
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+  .logo-icon::before {
+    content: ''; width: 10px; height: 10px; background: var(--green); border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+  @keyframes pulse-ring { 0%,100%{box-shadow:0 0 0 0 rgba(0,255,106,0.4)} 50%{box-shadow:0 0 0 8px rgba(0,255,106,0)} }
+  @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+  .logo-text { font-family: var(--sans); font-size: 22px; font-weight: 800; letter-spacing: -0.5px; color: #fff; }
+  .logo-text span { color: var(--green); }
+  .logo-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; margin-top: 1px; }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .status-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--green-dim); letter-spacing: 1px; }
+  .status-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; animation: blink 1.4s step-end infinite; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+  .network-tag { font-size: 10px; border: 1px solid var(--border); padding: 3px 8px; color: var(--text-dim); letter-spacing: 1px; }
+
+  .wallet-btn {
+    font-family: var(--mono); font-size: 11px; letter-spacing: 1px; padding: 6px 14px;
+    border: 1px solid var(--green); background: transparent; color: var(--green);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .wallet-btn:hover { background: var(--green-faint2); }
+  .wallet-btn.connected { border-color: var(--green-dim); color: var(--green-dim); }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); padding: 20px;
+    position: relative; overflow: hidden; transition: border-color 0.2s;
+  }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+    background: var(--green); transform: scaleX(0); transform-origin: left; transition: transform 0.4s ease;
+  }
+  .stat-card:hover::before { transform: scaleX(1); }
+  .stat-card:hover { border-color: var(--border-bright); }
+  .stat-label { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .stat-value { font-family: var(--sans); font-size: 32px; font-weight: 800; color: var(--green); line-height: 1; }
+  .stat-value.red { color: var(--red); }
+  .stat-value.yellow { color: var(--yellow); }
+  .stat-delta { font-size: 10px; color: var(--text-dim); margin-top: 6px; }
+  .stat-delta.up { color: var(--green-dim); }
+
+  .main-grid { display: grid; grid-template-columns: 1fr 400px; gap: 24px; margin-bottom: 24px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); overflow: hidden; }
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface2);
+  }
+  .panel-title { font-size: 11px; letter-spacing: 2px; color: var(--green-dim); text-transform: uppercase; }
+  .panel-badge { font-size: 10px; padding: 2px 8px; background: var(--green-faint); color: var(--green); border: 1px solid var(--border); }
+  .panel-badge.red { background: var(--red-faint); color: var(--red); border-color: rgba(255,59,59,0.3); }
+
+  .report-form { padding: 24px; }
+  .form-group { margin-bottom: 20px; }
+  .form-label { display: block; font-size: 10px; color: var(--text-dim); letter-spacing: 2px; margin-bottom: 8px; text-transform: uppercase; }
+  .form-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 13px; padding: 10px 14px; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .form-input:focus { border-color: var(--green); box-shadow: 0 0 0 1px var(--green), inset 0 0 20px rgba(0,255,106,0.04); }
+  .form-input::placeholder { color: var(--text-dim); }
+  .form-select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    font-family: var(--mono); font-size: 13px; padding: 10px 14px; outline: none; appearance: none; cursor: pointer;
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .stake-display {
+    display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+    background: var(--green-faint); border: 1px solid var(--border); margin-top: -8px; margin-bottom: 20px;
+  }
+  .stake-label { font-size: 11px; color: var(--text-dim); }
+  .stake-value { font-size: 14px; color: var(--green); }
+
+  .submit-btn {
+    width: 100%; background: var(--green); color: var(--bg); font-family: var(--mono);
+    font-size: 13px; font-weight: bold; letter-spacing: 2px; padding: 14px; border: none;
+    cursor: pointer; text-transform: uppercase; transition: all 0.15s; position: relative; overflow: hidden;
+  }
+  .submit-btn::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.15); transform: translateX(-100%); transition: transform 0.3s ease; }
+  .submit-btn:hover::after { transform: translateX(0); }
+  .submit-btn:hover { box-shadow: 0 0 20px rgba(0,255,106,0.4); }
+  .submit-btn:active { transform: scale(0.99); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .tier-legend { display: flex; gap: 16px; padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  .tier-item { display: flex; align-items: center; gap: 6px; font-size: 10px; color: var(--text-dim); }
+  .tier-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .tier-dot.t1 { background: var(--red); }
+  .tier-dot.t2 { background: var(--yellow); }
+  .tier-dot.t3 { background: var(--green-dim); }
+
+  .risk-list { max-height: 420px; overflow-y: auto; }
+  .risk-list::-webkit-scrollbar { width: 4px; }
+  .risk-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+  .risk-item {
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px 20px;
+    border-bottom: 1px solid var(--border); transition: background 0.15s; cursor: default;
+    animation: slide-in 0.3s ease forwards;
+  }
+  @keyframes slide-in { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+  .risk-item:hover { background: var(--green-faint); }
+  .risk-tier { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .risk-content { flex: 1; min-width: 0; }
+  .risk-address { font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+  .risk-meta { display: flex; gap: 12px; font-size: 10px; color: var(--text-dim); }
+  .risk-type { color: var(--yellow); }
+  .risk-reports { font-size: 10px; color: var(--text-dim); white-space: nowrap; }
+
+  .empty-state { padding: 40px 20px; text-align: center; color: var(--text-dim); font-size: 12px; }
+
+  .agent-panel { background: var(--surface); border: 1px solid var(--border); margin-bottom: 24px; }
+  .agent-body { padding: 24px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 24px; align-items: center; }
+  .agent-input-group { display: flex; flex-direction: column; gap: 8px; }
+  .agent-arrow { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-dim); font-size: 10px; letter-spacing: 1px; }
+  .arrow-line { width: 60px; height: 1px; background: linear-gradient(90deg, var(--border), var(--green-dim), var(--border)); position: relative; }
+  .arrow-line::after { content: '▶'; position: absolute; right: -6px; top: -7px; font-size: 10px; color: var(--green-dim); }
+
+  .check-btn {
+    background: transparent; border: 1px solid var(--green); color: var(--green);
+    font-family: var(--mono); font-size: 11px; letter-spacing: 2px; padding: 10px 20px;
+    cursor: pointer; text-transform: uppercase; transition: all 0.15s; white-space: nowrap;
+  }
+  .check-btn:hover { background: var(--green-faint2); box-shadow: 0 0 12px rgba(0,255,106,0.2); }
+  .check-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .proof-result { margin-top: 20px; padding: 20px; background: var(--bg); border: 1px solid var(--border); display: none; }
+  .proof-result.visible { display: block; }
+  .proof-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .proof-verdict { font-family: var(--sans); font-size: 18px; font-weight: 800; }
+  .proof-verdict.clear { color: var(--green); }
+  .proof-verdict.flagged { color: var(--red); }
+  .proof-rows { display: flex; flex-direction: column; gap: 8px; }
+  .proof-row { display: flex; justify-content: space-between; font-size: 11px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .proof-key { color: var(--text-dim); }
+  .proof-val { color: var(--text); }
+  .proof-val.ok { color: var(--green); }
+  .proof-val.warn { color: var(--yellow); }
+  .proof-val.bad { color: var(--red); }
+  .proof-hash { margin-top: 14px; padding: 10px; background: var(--surface2); font-size: 10px; color: var(--text-dim); word-break: break-all; border-left: 2px solid var(--green); }
+  .proof-hash span { color: var(--green-dim); }
+
+  .tx-link { font-size: 10px; margin-top: 8px; }
+  .tx-link a { color: var(--green-dim); text-decoration: none; }
+  .tx-link a:hover { color: var(--green); }
+
+  .feed-panel { background: var(--surface); border: 1px solid var(--border); }
+  .feed-list { padding: 0; max-height: 180px; overflow-y: auto; }
+  .feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-dim); animation: fade-in 0.4s ease; }
+  @keyframes fade-in { from{opacity:0} to{opacity:1} }
+  .feed-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+  .feed-dot.green { background: var(--green); }
+  .feed-dot.red { background: var(--red); }
+  .feed-dot.yellow { background: var(--yellow); }
+  .feed-time { color: var(--text-dim); opacity: 0.5; margin-left: auto; white-space: nowrap; }
+
+  .toast { position: fixed; bottom: 32px; right: 32px; background: var(--surface2); border: 1px solid var(--green); padding: 14px 20px; font-size: 12px; color: var(--green); z-index: 9999; transform: translateY(20px); opacity: 0; transition: all 0.3s ease; max-width: 360px; box-shadow: 0 0 30px rgba(0,255,106,0.15); }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.red { border-color: var(--red); color: var(--red); box-shadow: 0 0 30px rgba(255,59,59,0.15); }
+
+  .loading-bar { height: 2px; background: linear-gradient(90deg, transparent, var(--green), transparent); background-size: 200% 100%; animation: shimmer 1.2s infinite; display: none; }
+  .loading-bar.active { display: block; }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+
+  .mode-banner { padding: 8px 20px; background: rgba(255,209,102,0.08); border-bottom: 1px solid rgba(255,209,102,0.2); font-size: 10px; color: var(--yellow); letter-spacing: 1px; text-align: center; }
+
+  .wallet-actions { display: flex; align-items: center; gap: 8px; }
+  .load-kp-btn {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px; padding: 6px 10px;
+    border: 1px solid var(--border); background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .load-kp-btn:hover { border-color: var(--green); color: var(--green); }
+  .demo-btn {
+    font-family: var(--mono); font-size: 10px; letter-spacing: 1px; padding: 6px 10px;
+    border: 1px solid rgba(255,209,102,0.3); background: rgba(255,209,102,0.06); color: var(--yellow);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .demo-btn:hover { border-color: var(--yellow); background: rgba(255,209,102,0.12); }
+
+  @media (max-width: 900px) {
+    .main-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); }
+    .agent-body { grid-template-columns: 1fr; }
+    .agent-arrow { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="mode-banner" id="modeBanner">
+    ◈ DEVNET MODE — connect Phantom wallet for on-chain transactions
+  </div>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon"></div>
+      <div>
+        <div class="logo-text">Clear<span>Watch</span></div>
+        <div class="logo-sub">AI AGENT INNOCENCE PROTOCOL</div>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-badge">
+        <div class="status-dot"></div>
+        <span id="networkLabel">DEVNET</span>
+      </div>
+      <div class="network-tag" id="networkTag">DEMO</div>
+      <div class="wallet-actions">
+        <button class="demo-btn" onclick="loadDemoData()" title="Pre-fill addresses for demo">⚡ DEMO</button>
+        <button class="load-kp-btn" onclick="document.getElementById('keypairInput').click()">LOAD KEYPAIR</button>
+        <input type="file" id="keypairInput" accept=".json" style="display:none" onchange="loadKeypairFromFile(this)">
+        <button class="wallet-btn" id="walletBtn" onclick="connectWallet()">CONNECT PHANTOM</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Flagged Addresses</div>
+      <div class="stat-value red" id="statFlagged">0</div>
+      <div class="stat-delta" id="statFlaggedDelta">loading from chain...</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Reports Submitted</div>
+      <div class="stat-value" id="statReports">0</div>
+      <div class="stat-delta up" id="statReportsDelta">session total</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Proofs Generated</div>
+      <div class="stat-value" id="statProofs">0</div>
+      <div class="stat-delta up">on-chain innocence proofs</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">SOL Staked</div>
+      <div class="stat-value yellow" id="statStaked">0</div>
+      <div class="stat-delta">0.1 SOL per report</div>
+    </div>
+  </div>
+
+  <div class="agent-panel">
+    <div class="panel-header">
+      <div class="panel-title">Agent Pre-Transaction Check</div>
+      <div class="panel-badge">SELF PROOF OF INNOCENCE</div>
+    </div>
+    <div class="loading-bar" id="checkLoading"></div>
+    <div class="agent-body">
+      <div class="agent-input-group">
+        <label class="form-label">Agent Wallet</label>
+        <input class="form-input" id="agentAddr" placeholder="Connect wallet above..." readonly>
+        <label class="form-label" style="margin-top:8px">Transaction Amount (SOL)</label>
+        <input class="form-input" id="agentAmount" placeholder="0.00" value="1.0">
+      </div>
+      <div class="agent-arrow">
+        <div class="arrow-line"></div>
+        <button class="check-btn" id="checkBtn" onclick="runCheck()">CHECK →</button>
+        <div class="arrow-line" style="transform:scaleX(-1)"></div>
+      </div>
+      <div class="agent-input-group">
+        <label class="form-label">Counterparty Address</label>
+        <input class="form-input" id="counterAddr" placeholder="Recipient Solana address...">
+        <label class="form-label" style="margin-top:8px">Transaction Purpose</label>
+        <select class="form-select" id="txPurpose">
+          <option>DeFi — Swap</option>
+          <option>DeFi — LP Deposit</option>
+          <option>Payment — B2B</option>
+          <option>Payment — Treasury</option>
+          <option>NFT Purchase</option>
+          <option>Cross-chain Bridge</option>
+        </select>
+      </div>
+    </div>
+    <div class="proof-result" id="proofResult">
+      <div class="proof-header">
+        <div class="proof-verdict" id="proofVerdict"></div>
+      </div>
+      <div class="proof-rows" id="proofRows"></div>
+      <div class="proof-hash" id="proofHash"></div>
+      <div class="tx-link" id="proofTxLink"></div>
+    </div>
+  </div>
+
+  <div class="main-grid">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Submit Incident Report</div>
+        <div class="panel-badge red">EMERGENCY FLAG</div>
+      </div>
+      <div class="report-form">
+        <div class="form-group">
+          <label class="form-label">Compromised Wallet Address</label>
+          <input class="form-input" id="reportAddr" placeholder="Solana wallet address (base58)...">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Incident Type</label>
+            <select class="form-select" id="incidentType">
+              <option>Hack / Exploit</option>
+              <option>Rug Pull</option>
+              <option>Phishing</option>
+              <option>Flash Loan Attack</option>
+              <option>Bridge Exploit</option>
+              <option>Social Engineering</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Amount Lost (USD)</label>
+            <input class="form-input" id="amountLost" placeholder="e.g. 50000">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Exploit Transaction ID (optional)</label>
+          <input class="form-input" id="txId" placeholder="Solana tx signature...">
+        </div>
+        <div class="stake-display">
+          <span class="stake-label">Required Stake (slashable if false report)</span>
+          <span class="stake-value">0.1 SOL</span>
+        </div>
+        <button class="submit-btn" id="reportBtn" onclick="submitReport()">⚡ SUBMIT EMERGENCY REPORT</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Live Risk Registry</div>
+        <div class="panel-badge red" id="riskCount">0 ACTIVE</div>
+      </div>
+      <div class="tier-legend">
+        <div class="tier-item"><div class="tier-dot t1"></div>T1 Immediate</div>
+        <div class="tier-item"><div class="tier-dot t2"></div>T2 Verified</div>
+        <div class="tier-item"><div class="tier-dot t3"></div>T3 Confirmed</div>
+      </div>
+      <div class="risk-list" id="riskList">
+        <div class="empty-state">No flagged addresses yet.<br>Submit the first report above.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="feed-panel">
+    <div class="panel-header">
+      <div class="panel-title">Protocol Activity Feed</div>
+      <div class="panel-badge">LIVE</div>
+    </div>
+    <div class="feed-list" id="feedList">
+      <div class="feed-item"><div class="feed-dot green"></div><span>ClearWatch protocol initialized — waiting for wallet connection</span><span class="feed-time">now</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const RPC_URL = 'https://api.devnet.solana.com';
+const CLUSTER = 'devnet';
+const PROGRAM_ID = 'FDMGN1Gp62gK1TAnVvq2DM4HV6BhFwJ9Me5djLVKEKgB';
+
+// Instruction discriminators from IDL
+const DISC = {
+  report_address:  [218, 57, 210, 32, 75, 236, 251, 64],
+  check_and_prove: [237, 200, 5, 135, 95, 176, 63, 196],
+};
+
+// Account discriminators
+const ACCT_DISC = {
+  RiskEntry:      [26, 85, 157, 251, 161, 176, 141, 41],
+  InnocenceProof: [31, 146, 59, 242, 220, 139, 192, 72],
+};
+
+// ── SOLANA WEB3 (CDN) ─────────────────────────────────────────────────────────
+import { Connection, PublicKey, Transaction, TransactionInstruction,
+         SystemProgram, LAMPORTS_PER_SOL, Keypair } from 'https://esm.sh/@solana/web3.js@1.98.4';
+import { Buffer } from 'https://esm.sh/buffer@6.0.3';
+window.Buffer = Buffer;
+
+const connection = new Connection(RPC_URL, 'confirmed');
+
+// Signer abstraction. Two implementations:
+//   { type: 'phantom', publicKey, signTransaction }
+//   { type: 'keypair', publicKey, signTransaction }
+// Either way, write paths route through signer.signTransaction. Read paths
+// (registry browse, PDA lookup, on-chain account decoding) work with no signer.
+let signer = null;
+let walletPubkey = null;   // mirrors signer?.publicKey for legacy callsites
+let keypair = null;        // kept so existing PDAs / proofs can reference it
+let feedEvents = [];
+let sessionReports = 0;
+let sessionProofs = 0;
+const riskRegistry = new Map(); // addr -> entry
+
+// Base58 encoder for getProgramAccounts memcmp filter
+function toBase58(bytes) {
+  const ALPHA = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+  const d = [];
+  for (const b of bytes) {
+    let c = b;
+    for (let i = 0; i < d.length; i++) { c += d[i] << 8; d[i] = c % 58; c = (c / 58) | 0; }
+    while (c > 0) { d.push(c % 58); c = (c / 58) | 0; }
+  }
+  let s = '';
+  for (let i = 0; i < bytes.length && bytes[i] === 0; i++) s += '1';
+  for (let i = d.length - 1; i >= 0; i--) s += ALPHA[d[i]];
+  return s;
+}
+
+// Sign + send a transaction using whichever signer is active.
+// Returns the signature (or a DEMO_ string when no signer is set).
+async function signAndSend(tx) {
+  tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+  if (signer) {
+    tx.feePayer = signer.publicKey;
+    const signed = await signer.signTransaction(tx);
+    const sig = await connection.sendRawTransaction(signed.serialize());
+    await connection.confirmTransaction(sig, 'confirmed');
+    return sig;
+  }
+  await new Promise(r => setTimeout(r, 800));
+  return 'DEMO_' + Math.random().toString(36).slice(2, 18).toUpperCase();
+}
+
+function setPhantomSigner(pubkey) {
+  signer = {
+    type: 'phantom',
+    publicKey: pubkey,
+    signTransaction: (tx) => window.solana.signTransaction(tx),
+  };
+  walletPubkey = pubkey;
+  keypair = null;
+}
+
+function setKeypairSigner(kp) {
+  signer = {
+    type: 'keypair',
+    publicKey: kp.publicKey,
+    signTransaction: async (tx) => { tx.sign(kp); return tx; },
+  };
+  walletPubkey = kp.publicKey;
+  keypair = kp;
+}
+
+function clearSigner() {
+  signer = null;
+  walletPubkey = null;
+  keypair = null;
+}
+
+function renderWalletUI(label, sublabel) {
+  const btn = document.getElementById('walletBtn');
+  if (signer) {
+    btn.textContent = label;
+    btn.classList.add('connected');
+    btn.title = sublabel || 'Click to disconnect';
+    btn.onclick = () => disconnectWallet();
+    document.getElementById('agentAddr').value = walletPubkey.toBase58();
+  } else {
+    btn.textContent = 'CONNECT PHANTOM';
+    btn.classList.remove('connected');
+    btn.title = 'Connect Phantom wallet (devnet)';
+    btn.onclick = () => connectWallet();
+    document.getElementById('agentAddr').value = '';
+  }
+}
+
+// ── BORSH HELPERS ─────────────────────────────────────────────────────────────
+function writeU8(buf, offset, val) { buf[offset] = val; return offset + 1; }
+function writeU64LE(buf, offset, val) {
+  const b = BigInt(val);
+  for (let i = 0; i < 8; i++) buf[offset + i] = Number((b >> BigInt(i * 8)) & 0xffn);
+  return offset + 8;
+}
+function writeU32LE(buf, offset, val) {
+  buf[offset] = val & 0xff; buf[offset+1] = (val>>8)&0xff;
+  buf[offset+2] = (val>>16)&0xff; buf[offset+3] = (val>>24)&0xff;
+  return offset + 4;
+}
+function writeString(buf, offset, str) {
+  const encoded = new TextEncoder().encode(str);
+  offset = writeU32LE(buf, offset, encoded.length);
+  buf.set(encoded, offset);
+  return offset + encoded.length;
+}
+function writePubkey(buf, offset, pk) {
+  buf.set(pk.toBytes(), offset); return offset + 32;
+}
+
+function encodeReportAddress(flaggedAddress, incidentType) {
+  const typeBytes = new TextEncoder().encode(incidentType);
+  const len = 8 + 32 + 4 + typeBytes.length;
+  const buf = new Uint8Array(len);
+  buf.set(DISC.report_address, 0);
+  let off = 8;
+  off = writePubkey(buf, off, flaggedAddress);
+  off = writeString(buf, off, incidentType);
+  return buf;
+}
+
+function encodeCheckAndProve(counterparty, amountLamports, purpose) {
+  const purposeBytes = new TextEncoder().encode(purpose);
+  const len = 8 + 32 + 8 + 4 + purposeBytes.length;
+  const buf = new Uint8Array(len);
+  buf.set(DISC.check_and_prove, 0);
+  let off = 8;
+  off = writePubkey(buf, off, counterparty);
+  off = writeU64LE(buf, off, amountLamports);
+  off = writeString(buf, off, purpose);
+  return buf;
+}
+
+// ── PDA HELPERS ───────────────────────────────────────────────────────────────
+const PROG = new PublicKey(PROGRAM_ID);
+
+async function pdaRiskEntry(flagged) {
+  return PublicKey.findProgramAddressSync([
+    new TextEncoder().encode('risk_entry'), flagged.toBytes()
+  ], PROG)[0];
+}
+
+async function pdaStakeVault(flagged) {
+  return PublicKey.findProgramAddressSync([
+    new TextEncoder().encode('stake_vault'), flagged.toBytes()
+  ], PROG)[0];
+}
+
+async function pdaInnocenceProof(agent, counterparty) {
+  return PublicKey.findProgramAddressSync([
+    new TextEncoder().encode('innocence_proof'), agent.toBytes(), counterparty.toBytes()
+  ], PROG)[0];
+}
+
+// ── ACCOUNT DESERIALIZERS ─────────────────────────────────────────────────────
+function decodeRiskEntry(data) {
+  let off = 8; // skip discriminator
+  const address = new PublicKey(data.slice(off, off+32)); off += 32;
+  const tier = data[off]; off += 1;
+  const typeLen = new DataView(data.buffer, off, 4).getUint32(0, true); off += 4;
+  const incidentType = new TextDecoder().decode(data.slice(off, off+typeLen)); off += typeLen;
+  const reporter = new PublicKey(data.slice(off, off+32)); off += 32;
+  const stakeAmount = new DataView(data.buffer, off, 8).getBigUint64(0, true); off += 8;
+  // Timestamps fit comfortably in JS Number (Number.MAX_SAFE_INTEGER ≫ 2^32).
+  // We coerce here so renderRiskList / timeAgo can do plain Number arithmetic
+  // without "Cannot mix BigInt and other types" runtime errors.
+  const timestamp = Number(new DataView(data.buffer, off, 8).getBigInt64(0, true)); off += 8;
+  const reportCount = data[off]; off += 1;
+  const expiresAt = Number(new DataView(data.buffer, off, 8).getBigInt64(0, true));
+  return { address, tier, incidentType, reporter, stakeAmount, timestamp, reportCount, expiresAt };
+}
+
+function decodeInnocenceProof(data) {
+  let off = 8;
+  const agent = new PublicKey(data.slice(off, off+32)); off += 32;
+  const counterparty = new PublicKey(data.slice(off, off+32)); off += 32;
+  const amount = new DataView(data.buffer, off, 8).getBigUint64(0, true); off += 8;
+  const purposeHash = Array.from(data.slice(off, off+32)); off += 32;
+  const isClear = data[off] !== 0; off += 1;
+  const riskScore = data[off]; off += 1;
+  const riskTierAtCheck = data[off]; off += 1;
+  const timestamp = Number(new DataView(data.buffer, off, 8).getBigInt64(0, true)); off += 8;
+  const proofHash = Array.from(data.slice(off, off+32));
+  return { agent, counterparty, amount, purposeHash, isClear, riskScore, riskTierAtCheck, timestamp, proofHash };
+}
+
+// ── WALLET ────────────────────────────────────────────────────────────────────
+window.connectWallet = async function() {
+  const phantom = window?.solana;
+  if (!phantom?.isPhantom) {
+    showToast('Phantom not detected. Install from phantom.app or use LOAD KEYPAIR for keypair mode.', true);
+    return;
+  }
+  try {
+    const resp = await phantom.connect();
+    await afterPhantomConnect(resp.publicKey, /*silent=*/false);
+  } catch(e) {
+    showToast('Wallet connection failed: ' + e.message, true);
+  }
+};
+
+async function afterPhantomConnect(pubkey, silent) {
+  setPhantomSigner(pubkey);
+  renderWalletUI(short(pubkey.toBase58()));
+  if (!silent) {
+    addFeed('green', `Phantom connected: ${short(pubkey.toBase58())}`);
+    showToast('Wallet connected');
+  }
+  // Network mismatch hint: if our devnet RPC sees 0 SOL on this wallet, the user
+  // is probably on Mainnet inside Phantom. Devnet airdrops are free, so a real
+  // devnet user generally has nonzero balance.
+  try {
+    const bal = await connection.getBalance(pubkey);
+    if (bal === 0) {
+      showToast('Phantom connected, but devnet balance is 0. If your wallet has SOL elsewhere, switch Phantom to Devnet (Settings → Developer Settings → Testnet Mode → Solana Devnet) and reload.', true);
+      addFeed('yellow', 'Devnet balance 0 — verify Phantom is on Devnet');
+    } else if (!silent) {
+      addFeed('green', `Devnet balance: ${(bal/1e9).toFixed(3)} SOL`);
+    }
+  } catch {}
+}
+
+window.disconnectWallet = async function() {
+  try {
+    if (signer?.type === 'phantom' && window?.solana?.disconnect) {
+      await window.solana.disconnect();
+    }
+  } catch {}
+  clearSigner();
+  renderWalletUI();
+  addFeed('yellow', 'Wallet disconnected');
+  showToast('Disconnected');
+};
+
+window.loadKeypairFromFile = async function(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const secretKey = Uint8Array.from(JSON.parse(text));
+    const kp = Keypair.fromSecretKey(secretKey);
+    setKeypairSigner(kp);
+    renderWalletUI('KP: ' + short(kp.publicKey.toBase58()), 'Keypair mode — click to clear');
+    const bal = await connection.getBalance(kp.publicKey);
+    addFeed('green', `Keypair loaded: ${short(kp.publicKey.toBase58())} (${(bal/1e9).toFixed(2)} SOL)`);
+    showToast(`Keypair active. Balance: ${(bal/1e9).toFixed(2)} SOL`);
+  } catch(e) {
+    showToast('Load failed: ' + e.message, true);
+  } finally {
+    input.value = '';
+  }
+};
+
+// Pre-fill demo addresses for a fast walkthrough during the pitch.
+window.loadDemoData = function() {
+  const flagged = Keypair.generate().publicKey.toBase58();
+  document.getElementById('reportAddr').value = flagged;
+  document.getElementById('amountLost').value = '50000';
+  document.getElementById('counterAddr').value = flagged;
+  showToast('✓ Demo address loaded — submit report, then run check', false);
+  addFeed('yellow', `Demo flow ready — counterparty = ${short(flagged)}`);
+};
+
+// ── SUBMIT REPORT ─────────────────────────────────────────────────────────────
+window.submitReport = async function() {
+  const addrStr = document.getElementById('reportAddr').value.trim();
+  const type = document.getElementById('incidentType').value;
+
+  if (!addrStr) { showToast('⚠ Wallet address required', true); return; }
+  let flagged;
+  try { flagged = new PublicKey(addrStr); } catch { showToast('⚠ Invalid Solana address', true); return; }
+  if (!walletPubkey) { showToast('⚠ Connect Phantom or load a keypair first', true); return; }
+
+  const btn = document.getElementById('reportBtn');
+  btn.disabled = true;
+  btn.textContent = 'SUBMITTING...';
+
+  try {
+    const riskEntryPda = await pdaRiskEntry(flagged);
+    const stakeVaultPda = await pdaStakeVault(flagged);
+
+    const data = encodeReportAddress(flagged, type);
+    const ix = new TransactionInstruction({
+      programId: PROG,
+      keys: [
+        { pubkey: walletPubkey, isSigner: true, isWritable: true },
+        { pubkey: riskEntryPda, isSigner: false, isWritable: true },
+        { pubkey: stakeVaultPda, isSigner: false, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: Buffer.from(data),
+    });
+
+    const sig = await signAndSend(new Transaction().add(ix));
+    const isDemo = sig.startsWith('DEMO_');
+
+    // Read back the entry from chain when possible; fall back to local data
+    let entry = { address: flagged, tier: 1, incidentType: type, reportCount: 1,
+                  stakeAmount: 100_000_000n, timestamp: Math.floor(Date.now()/1000),
+                  expiresAt: Math.floor(Date.now()/1000) + 3600 };
+    if (!isDemo) {
+      const acct = await connection.getAccountInfo(riskEntryPda).catch(() => null);
+      if (acct) {
+        try { entry = decodeRiskEntry(acct.data); } catch {}
+      }
+    }
+
+    sessionReports++;
+    document.getElementById('statReports').textContent = sessionReports;
+    riskRegistry.set(flagged.toBase58(), entry);
+    renderRiskList();
+    updateStats();
+
+    document.getElementById('reportAddr').value = '';
+    document.getElementById('txId').value = '';
+    document.getElementById('amountLost').value = '';
+
+    addFeed('red', `Emergency flag: ${short(addrStr)} — ${type}${isDemo ? ' [DEMO]' : ''}`);
+    showToast(`✓ T1 flag submitted. Stake: 0.1 SOL\n${isDemo ? sig : 'Tx ' + sig.slice(0,18) + '…'}`);
+  } catch(e) {
+    showToast('Error: ' + e.message, true);
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ SUBMIT EMERGENCY REPORT';
+  }
+};
+
+// ── AGENT CHECK ───────────────────────────────────────────────────────────────
+window.runCheck = async function() {
+  const counterStr = document.getElementById('counterAddr').value.trim();
+  const amountSOL = parseFloat(document.getElementById('agentAmount').value) || 1;
+  const purpose = document.getElementById('txPurpose').value;
+
+  if (!counterStr) { showToast('⚠ Counterparty address required', true); return; }
+  if (!walletPubkey) { showToast('⚠ Connect wallet first', true); return; }
+
+  let counterparty;
+  try { counterparty = new PublicKey(counterStr); } catch { showToast('⚠ Invalid Solana address', true); return; }
+
+  const loading = document.getElementById('checkLoading');
+  const result = document.getElementById('proofResult');
+  result.classList.remove('visible');
+  loading.classList.add('active');
+  document.getElementById('checkBtn').disabled = true;
+
+  try {
+    const proofPda = await pdaInnocenceProof(walletPubkey, counterparty);
+    const riskEntryPda = await pdaRiskEntry(counterparty);
+
+    // Check if risk entry exists on chain
+    const riskAcct = await connection.getAccountInfo(riskEntryPda);
+    const hasRiskEntry = riskAcct !== null &&
+      riskAcct.data.slice(0,8).every((b,i) => b === ACCT_DISC.RiskEntry[i]);
+
+    const amountLamports = Math.floor(amountSOL * LAMPORTS_PER_SOL);
+    const data = encodeCheckAndProve(counterparty, amountLamports, purpose);
+
+    // Anchor optional account: pass the real PDA if it exists, otherwise pass
+    // the program ID itself as a sentinel. The on-chain handler will see `None`.
+    const riskEntryKey = hasRiskEntry ? riskEntryPda : PROG;
+
+    const ix = new TransactionInstruction({
+      programId: PROG,
+      keys: [
+        { pubkey: walletPubkey, isSigner: true, isWritable: true },
+        { pubkey: riskEntryKey, isSigner: false, isWritable: false },
+        { pubkey: proofPda, isSigner: false, isWritable: true },
+        { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      ],
+      data: Buffer.from(data),
+    });
+
+    const sig = await signAndSend(new Transaction().add(ix));
+    const isDemo = sig.startsWith('DEMO_');
+
+    // Read proof from chain when we actually transacted
+    let proof;
+    const proofAcct = !isDemo ? await connection.getAccountInfo(proofPda).catch(() => null) : null;
+    if (proofAcct) {
+      proof = decodeInnocenceProof(proofAcct.data);
+    } else {
+      proof = { isClear: !hasRiskEntry, riskScore: hasRiskEntry ? 50 : 0, riskTierAtCheck: hasRiskEntry ? 1 : 0,
+                proofHash: Array(32).fill(0).map(() => Math.floor(Math.random()*256)) };
+    }
+
+    // Update UI
+    loading.classList.remove('active');
+    const verdict = document.getElementById('proofVerdict');
+    const rows = document.getElementById('proofRows');
+    const hashEl = document.getElementById('proofHash');
+    const txLink = document.getElementById('proofTxLink');
+    const hashHex = proof.proofHash.map(b => b.toString(16).padStart(2,'0')).join('');
+
+    if (proof.isClear) {
+      verdict.textContent = '✓ CLEAR TO PROCEED';
+      verdict.className = 'proof-verdict clear';
+      rows.innerHTML = `
+        <div class="proof-row"><span class="proof-key">Agent</span><span class="proof-val ok">${short(walletPubkey.toBase58())}</span></div>
+        <div class="proof-row"><span class="proof-key">Counterparty</span><span class="proof-val ok">${short(counterStr)}</span></div>
+        <div class="proof-row"><span class="proof-key">Amount</span><span class="proof-val">${amountSOL} SOL</span></div>
+        <div class="proof-row"><span class="proof-key">Purpose</span><span class="proof-val">${purpose}</span></div>
+        <div class="proof-row"><span class="proof-key">Risk Registry</span><span class="proof-val ok">NOT FLAGGED</span></div>
+        <div class="proof-row"><span class="proof-key">Risk Score</span><span class="proof-val ok">${proof.riskScore}/100</span></div>
+        <div class="proof-row"><span class="proof-key">Result</span><span class="proof-val ok">TRANSACTION AUTHORIZED</span></div>`;
+      hashEl.innerHTML = `<span>INNOCENCE_PROOF //</span> ${hashHex}`;
+      sessionProofs++;
+      document.getElementById('statProofs').textContent = sessionProofs;
+      addFeed('green', `Proof generated: ${short(walletPubkey.toBase58())} → CLEAR (${purpose})`);
+      showToast('✓ Innocence proof recorded on-chain');
+    } else {
+      verdict.textContent = '⛔ BLOCKED — COUNTERPARTY FLAGGED';
+      verdict.className = 'proof-verdict flagged';
+      rows.innerHTML = `
+        <div class="proof-row"><span class="proof-key">Agent</span><span class="proof-val ok">${short(walletPubkey.toBase58())}</span></div>
+        <div class="proof-row"><span class="proof-key">Counterparty</span><span class="proof-val bad">${short(counterStr)} [FLAGGED]</span></div>
+        <div class="proof-row"><span class="proof-key">Risk Tier</span><span class="proof-val bad">TIER ${proof.riskTierAtCheck}</span></div>
+        <div class="proof-row"><span class="proof-key">Risk Score</span><span class="proof-val bad">${proof.riskScore}/100</span></div>
+        <div class="proof-row"><span class="proof-key">Result</span><span class="proof-val bad">TRANSACTION BLOCKED</span></div>`;
+      hashEl.innerHTML = `<span>BLOCK_PROOF //</span> ${hashHex}`;
+      addFeed('red', `BLOCKED: ${short(walletPubkey.toBase58())} → ${short(counterStr)} flagged T${proof.riskTierAtCheck}`);
+      showToast('⛔ Transaction blocked — counterparty flagged', true);
+    }
+
+    if (isDemo) {
+      txLink.innerHTML = `<span style="color:var(--text-dim)">${sig} (simulated — load keypair to send for real)</span>`;
+    } else {
+      txLink.innerHTML = `<a href="https://explorer.solana.com/tx/${sig}?cluster=${CLUSTER}" target="_blank">View on Explorer → ${sig.slice(0,20)}…</a>`;
+    }
+    result.classList.add('visible');
+
+  } catch(e) {
+    loading.classList.remove('active');
+    showToast('Check failed: ' + e.message, true);
+    console.error(e);
+  } finally {
+    document.getElementById('checkBtn').disabled = false;
+  }
+};
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const entries = [...riskRegistry.values()];
+  document.getElementById('statFlagged').textContent = entries.length;
+  const totalStakeLamports = entries.reduce((s, e) =>
+    s + (typeof e.stakeAmount === 'bigint' ? e.stakeAmount : BigInt(e.stakeAmount || 100_000_000)), 0n);
+  document.getElementById('statStaked').textContent = (Number(totalStakeLamports) / 1e9).toFixed(1);
+  document.getElementById('statFlaggedDelta').textContent =
+    entries.length === 0 ? 'no active flags' : 'live from chain';
+}
+
+function renderRiskList() {
+  const list = document.getElementById('riskList');
+  const entries = [...riskRegistry.values()];
+  document.getElementById('riskCount').textContent = entries.length + ' ACTIVE';
+  document.getElementById('statFlagged').textContent = entries.length;
+
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="empty-state">No flagged addresses yet.<br>Submit the first report above.</div>';
+    return;
+  }
+
+  const now = Date.now() / 1000;
+  list.innerHTML = entries.map((e, i) => {
+    const color = e.tier===1 ? 'var(--red)' : e.tier===2 ? 'var(--yellow)' : 'var(--green-dim)';
+    const age = timeAgo(e.timestamp);
+    const ttl = e.tier === 1 ? ` | TTL ${Math.max(0, Math.floor((e.expiresAt - now)/60))}m` : '';
+    return `<div class="risk-item" style="animation-delay:${i*0.05}s">
+      <div class="risk-tier" style="background:${color}"></div>
+      <div class="risk-content">
+        <div class="risk-address">${e.address.toBase58()}</div>
+        <div class="risk-meta">
+          <span class="risk-type">${e.incidentType}</span>
+          <span>${e.reportCount} report${e.reportCount>1?'s':''}</span>
+        </div>
+      </div>
+      <div class="risk-reports">${age}${ttl}</div>
+    </div>`;
+  }).join('');
+}
+
+function addFeed(color, text) {
+  feedEvents.unshift({ color, text, time: 'now' });
+  if (feedEvents.length > 30) feedEvents.pop();
+  const feed = document.getElementById('feedList');
+  feed.innerHTML = feedEvents.map(e =>
+    `<div class="feed-item"><div class="feed-dot ${e.color}"></div><span>${e.text}</span><span class="feed-time">${e.time}</span></div>`
+  ).join('');
+}
+
+// ── UTILITIES ─────────────────────────────────────────────────────────────────
+function short(addr) { return addr.length > 12 ? addr.slice(0,4)+'...'+addr.slice(-4) : addr; }
+function timeAgo(ts) {
+  const diff = Math.floor(Date.now()/1000 - ts);
+  if (diff < 60) return diff + 's ago';
+  if (diff < 3600) return Math.floor(diff/60) + 'm ago';
+  return Math.floor(diff/3600) + 'h ago';
+}
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' red' : '');
+  setTimeout(() => t.className = 'toast' + (isError ? ' red' : ''), 3500);
+}
+
+// Load all RiskEntry accounts owned by the program into the local registry.
+async function loadRiskEntriesFromChain() {
+  try {
+    const discB58 = toBase58(new Uint8Array(ACCT_DISC.RiskEntry));
+    const accounts = await connection.getProgramAccounts(PROG, {
+      filters: [{ memcmp: { offset: 0, bytes: discB58 } }],
+    });
+    let loaded = 0;
+    for (const { account } of accounts) {
+      try {
+        const entry = decodeRiskEntry(account.data);
+        riskRegistry.set(entry.address.toBase58(), entry);
+        loaded++;
+      } catch(e) { console.warn('decode skip', e); }
+    }
+    renderRiskList();
+    updateStats();
+    if (loaded > 0) addFeed('yellow', `Loaded ${loaded} flagged address${loaded > 1 ? 'es' : ''} from chain`);
+  } catch(e) {
+    console.warn('Failed to load risk entries:', e);
+  }
+}
+
+// Wire Phantom event listeners once (whether or not currently connected).
+function setupPhantomListeners() {
+  const phantom = window?.solana;
+  if (!phantom?.isPhantom || phantom.__cwListenersAttached) return;
+  phantom.__cwListenersAttached = true;
+
+  // Hot-swap if user changes accounts inside Phantom — but only if we are
+  // currently using the Phantom signer. Don't hijack keypair mode.
+  phantom.on('accountChanged', async (newPubkey) => {
+    if (signer?.type !== 'phantom') return;
+    if (newPubkey) {
+      await afterPhantomConnect(newPubkey, /*silent=*/false);
+      addFeed('yellow', `Account changed → ${short(newPubkey.toBase58())}`);
+    } else {
+      clearSigner();
+      renderWalletUI();
+      addFeed('yellow', 'Phantom account revoked');
+    }
+  });
+
+  phantom.on('disconnect', () => {
+    if (signer?.type === 'phantom') {
+      clearSigner();
+      renderWalletUI();
+      addFeed('yellow', 'Phantom disconnected');
+    }
+  });
+}
+
+// Try to reconnect silently if the user previously authorized this dApp.
+async function tryEagerConnect() {
+  const phantom = window?.solana;
+  if (!phantom?.isPhantom) return;
+  try {
+    const resp = await phantom.connect({ onlyIfTrusted: true });
+    await afterPhantomConnect(resp.publicKey, /*silent=*/true);
+    addFeed('green', `Phantom reconnected: ${short(resp.publicKey.toBase58())}`);
+  } catch {
+    // not previously trusted — stay disconnected, this is normal
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  renderWalletUI(); // start in disconnected state
+  setupPhantomListeners();
+  try {
+    const slot = await connection.getSlot();
+    document.getElementById('networkLabel').textContent = 'DEVNET SLOT ' + slot;
+    document.getElementById('modeBanner').textContent =
+      '◈ CONNECTED TO DEVNET (slot ' + slot + ') — program ' + PROGRAM_ID.slice(0,8) + '… — connect Phantom (devnet) to transact';
+    addFeed('green', 'Connected to Solana devnet — program deployed');
+
+    // Read paths run regardless of wallet — public-good narrative
+    await loadRiskEntriesFromChain();
+
+    // Eager reconnect after RPC is healthy
+    await tryEagerConnect();
+
+    setInterval(async () => {
+      try {
+        const s = await connection.getSlot();
+        document.getElementById('networkLabel').textContent = 'DEVNET SLOT ' + s;
+      } catch {}
+    }, 4000);
+  } catch(e) {
+    document.getElementById('modeBanner').textContent = '⚠ Cannot reach ' + RPC_URL + ' — devnet RPC unreachable';
+    document.getElementById('modeBanner').style.color = 'var(--red)';
+    addFeed('red', 'Cannot reach devnet RPC at ' + RPC_URL);
+  }
+}
+
+init();
+</script>
+</body>
+</html>

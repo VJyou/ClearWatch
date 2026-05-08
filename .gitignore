@@ -1,0 +1,35 @@
+# Build artifacts
+target/
+**/target/
+.anchor/
+a.out
+
+# Node / Solana local state
+node_modules/
+test-ledger/
+
+# Solana keypairs and secrets
+*-keypair.json
+**/deploy/*-keypair.json
+**/*.key
+.env
+.env.*
+
+# Cloudflare wrangler
+.wrangler/
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Claude Code session files (sponsor skills の再配布権限が不明、safer to omit)
+.claude/
+
+# Internal sync docs (judges に見せたければ削除可)
+SYNC-iPhone.md
+CLAUDE.md
+
+# Logs
+*.log
